@@ -1,0 +1,50 @@
+import argparse
+import sys
+import pandas as pd
+from pathlib import Path
+
+
+def sample_parquet(input_path: str, output_path: str, n: int = 5000, seed: int = 42) -> None:
+    input_file = Path(input_path)
+    if not input_file.exists():
+        print(f"Error: Input file '{input_path}' not found.")
+        sys.exit(1)
+
+    print(f"Reading '{input_path}'...")
+    df = pd.read_parquet(input_path)
+    total_rows = len(df)
+    print(f"Total rows: {total_rows:,}")
+
+    if total_rows <= n:
+        print(f"Warning: File has {total_rows:,} rows which is <= {n:,}. Saving all rows.")
+        sample = df
+    else:
+        sample = df.sample(n=n, random_state=seed)
+        print(f"Sampled {n:,} rows (seed={seed}).")
+
+    sample.to_parquet(output_path, index=False)
+    print(f"Saved sample to '{output_path}'.")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Sample N rows from a Parquet file.")
+    parser.add_argument("input",  help="Path to the input .parquet file")
+    parser.add_argument("output", help="Path to save the sampled .parquet file")
+    parser.add_argument(
+        "-n", "--rows",
+        type=int,
+        default=5000,
+        help="Number of rows to sample (default: 5000)",
+    )
+    parser.add_argument(
+        "-s", "--seed",
+        type=int,
+        default=42,
+        help="Random seed for reproducibility (default: 42)",
+    )
+    args = parser.parse_args()
+    sample_parquet(args.input, args.output, n=args.rows, seed=args.seed)
+
+
+if __name__ == "__main__":
+    main()
